@@ -1,22 +1,29 @@
 use crate::app_error::AppError;
-use crate::domain::register_command::RegisterCommand;
 use crate::domain::user_repository::UserRepository;
 use crate::model::persistence::user::User;
+use crate::model::values::email::Email;
 use anyhow::Result;
+use crate::domain::commands::register_command::RegisterCommand;
 use crate::utils::hasher::Hasher;
+use crate::utils::jwt::JwtGenerator;
 
 #[derive(Clone)]
 pub struct UserService {
     user_repo: UserRepository,
     hasher: Hasher,
+    jwt: JwtGenerator,
 }
 
 impl UserService {
-    pub fn new(user_repo: UserRepository, hasher: Hasher) -> Self {
-        UserService { user_repo, hasher }
+    pub fn new(user_repo: UserRepository, hasher: Hasher, jwt_service: JwtGenerator) -> Self {
+        UserService {
+            user_repo,
+            hasher,
+          jwt: jwt_service,
+        }
     }
 
-    pub async fn register_user(&self, request: RegisterCommand) -> Result<User, AppError> {
+    pub async fn register_user(&self, request: RegisterCommand) -> Result<(User, String), AppError> {
         let password_hash = self.hasher.hash_password(&request.password)?;
 
         if self.user_repo.get_user_by_username(request.username.clone()).await?.is_some() {
@@ -36,6 +43,37 @@ impl UserService {
             .insert_user(&request.email, &request.username, &password_hash)
             .await?;
 
-        Ok(user)
+        // Generate JWT token
+        let token = self
+            .jwt
+            .generate_token(user.id)
+            .map_err(|e| AppError::Other(format!("Failed to generate token: {}", e)))?;
+
+        Ok((user, token))
+    }
+
+    pub async fn login_user(&self, email: Email, password: String) -> Result<(User, String), AppError> {
+        let user = self
+            .user_repo
+            .get_user_by_email(email.clone())
+            .await?
+            .ok_or_else(|| AppError::Unauthorized)?;
+
+        let is_valid = self
+            .hasher
+            .verify_password(&password, &user.password_hash)?;
+
+        if is_valid {
+          let token = self
+            .jwt
+            .generate_token(user.id)
+            .map_err(|e| AppError::Other(format!("Failed to generate token: {}", e)))?;
+          Ok((user, token))
+        } else {
+            Err(AppError::Unauthorized)
+        }
+
+        // Generate JWT token
+
     }
 }

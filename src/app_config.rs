@@ -42,10 +42,13 @@ impl DatabaseConfig {
 }
 
 #[derive(Debug, Config, Clone)]
-pub struct HashingConfig {
+pub struct SecretsConfig {
     #[env("PASSWORD_PEPPER")]
     #[default(Secret("default_pepper".to_string()))]
     pub(crate) pepper: Secret<String>,
+    #[env("JWT_SECRET")]
+    #[default(Secret("default_jwt_secret_change_in_production".to_string()))]
+    pub(crate) jwt: Secret<String>,
 }
 
 #[derive(Debug, Config, Clone)]
@@ -55,7 +58,7 @@ pub struct AppConfig {
     #[config]
     pub(crate) database: DatabaseConfig,
     #[config]
-    pub(crate) hashing: HashingConfig,
+    pub(crate) secrets: SecretsConfig,
 }
 
 pub fn load_config() -> AppConfig {

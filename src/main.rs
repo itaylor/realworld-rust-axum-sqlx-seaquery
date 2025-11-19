@@ -5,6 +5,7 @@ use crate::server::init_server;
 use crate::tracing::init_tracing;
 use ::tracing::info;
 use crate::utils::hasher::Hasher;
+use crate::utils::jwt::JwtGenerator;
 
 mod app_config;
 mod app_error;
@@ -26,8 +27,9 @@ async fn main() {
         .expect("Failed to connect to database");
 
     let user_service = domain::user_service::UserService::new(
-        UserRepository::new(db),
-        Hasher::new(config.hashing.pepper.0.clone()),
+      UserRepository::new(db),
+      Hasher::new(config.secrets.pepper.0.clone()),
+      JwtGenerator::new(config.secrets.jwt.0.clone()),
     );
 
     let app_state = http::AppState {

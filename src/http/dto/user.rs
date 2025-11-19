@@ -1,6 +1,7 @@
 use crate::model::values::email::Email;
 use crate::model::values::username::Username;
 use serde::{Deserialize, Serialize};
+use crate::model::persistence::user::User;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserResponse {
@@ -14,6 +15,18 @@ pub struct UserData {
     pub username: Username,
     pub bio: Option<String>,
     pub image: Option<String>,
+}
+
+impl UserData {
+    pub(crate) fn new(user: User, token: String) -> Self {
+        UserData {
+            email: user.email,
+            token,
+            username: user.username,
+            bio: user.bio,
+            image: user.image,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

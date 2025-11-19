@@ -50,7 +50,7 @@ impl Hasher {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::r#mod::Hasher;
+    use crate::utils::hasher::Hasher;
 
     #[test]
     fn test_verify_password_correct() {
