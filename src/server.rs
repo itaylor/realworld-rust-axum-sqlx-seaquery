@@ -1,20 +1,17 @@
-use std::io::Error;
-use axum::Router;
-use tracing::info;
 use crate::app_config::HttpConfig;
-use crate::http::router;
+use crate::http::{AppState, router};
+use axum::Router;
+use std::io::Error;
+use tracing::info;
 
-pub async fn init_server(config: &HttpConfig) -> Result<(), Error> {
-  let listener = tokio::net::TcpListener::bind(config.url())
-    .await?;
+pub async fn init_server(config: &HttpConfig, state: AppState) -> Result<(), Error> {
+    let listener = tokio::net::TcpListener::bind(config.url()).await?;
 
-  let router = Router::new()
-    .nest("/api", router());
+    let router = Router::new().nest("/api", router()).with_state(state);
 
-  axum::serve(listener, router)
-    .await?;
+    info!("Starting server on {}", config.url());
 
-  info!("Server running on {}", config.url());
-  
-  Ok(())
+    axum::serve(listener, router.into_make_service()).await?;
+
+    Ok(())
 }

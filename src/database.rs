@@ -1,30 +1,37 @@
-use sqlx::{pool, Error, Pool, Postgres};
+use crate::app_config::DatabaseConfig;
 use sqlx::migrate::MigrateError;
 use sqlx::postgres::PgPoolOptions;
+use sqlx::{Error, Pool, Postgres, pool};
 use tracing::info;
-use crate::app_config::DatabaseConfig;
 
+#[derive(Clone)]
 pub struct Database(Pool<Postgres>);
 
+impl Database {
+    pub fn pool(&self) -> &Pool<Postgres> {
+        &self.0
+    }
+}
+
 pub async fn connect_db(config: &DatabaseConfig) -> Result<Database, Error> {
+    info!("Connecting to database...");
 
-  info!("Connecting to database...");
+    let db = PgPoolOptions::new()
+        .max_connections(config.max_connections)
+        .connect(&config.connection_url())
+        .await?;
 
-  let db = PgPoolOptions::new()
-    .max_connections(config.max_connections)
-    .connect(&config.connection_url())
-    .await?;
+    info!(
+        "Connected to database {} with user {} successfully. Hash of password: {}",
+        config.database, config.user, config.password
+    );
 
-  info!("Connected to database {} with user {} successfully. Hash of password: {}", config.database, config.user, config.password);
+    migrate(&db).await?;
 
-  migrate(&db).await?;
-
-  Ok(Database(db))
+    Ok(Database(db))
 }
 
 async fn migrate(db_pool: &Pool<Postgres>) -> Result<(), MigrateError> {
-  tracing::log::info!("Running database migrations...");
-  sqlx::migrate!("./migrations")
-    .run(db_pool)
-    .await
+    tracing::log::info!("Running database migrations...");
+    sqlx::migrate!("./migrations").run(db_pool).await
 }

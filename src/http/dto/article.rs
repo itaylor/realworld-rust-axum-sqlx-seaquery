@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::http::dto::profile::Profile;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArticleResponse {
@@ -79,10 +79,9 @@ pub struct UpdateArticle {
 
 #[derive(Deserialize)]
 pub struct ArticleListQuery {
-  tag: Option<String>,
-  author: Option<String>,
-  favorited: Option<String>,
-  limit: Option<i64>,
-  offset: Option<i64>,
+    tag: Option<String>,
+    author: Option<String>,
+    favorited: Option<String>,
+    limit: Option<i64>,
+    offset: Option<i64>,
 }
-

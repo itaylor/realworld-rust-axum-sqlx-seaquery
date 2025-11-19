@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::http::dto::profile::Profile;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommentResponse {

@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::model::values::email::Email;
 use crate::model::values::username::Username;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterRequest {

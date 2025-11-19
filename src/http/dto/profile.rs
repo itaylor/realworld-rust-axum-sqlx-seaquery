@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::model::values::username::Username;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileResponse {

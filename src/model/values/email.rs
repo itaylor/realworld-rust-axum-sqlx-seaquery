@@ -1,24 +1,25 @@
+use serde::{Deserialize, Serialize};
+use sqlx::{Decode, Type};
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
-use serde::{Deserialize, Serialize};
 use validator::ValidateEmail;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+#[sqlx(transparent)]
 #[serde(try_from = "String", into = "String")]
 pub struct Email(String);
 
 impl TryFrom<String> for Email {
-  type Error = String;
+    type Error = String;
 
-  fn try_from(value: String) -> Result<Self, Self::Error> {
-    if value.validate_email() {
-      Ok(Email(value))
-    } else {
-      Err(format!("Invalid email format: {}", value))
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.validate_email() {
+            Ok(Email(value))
+        } else {
+            Err(format!("Invalid email format: {}", value))
+        }
     }
-  }
 }
-
 
 impl TryFrom<&str> for Email {
     type Error = String;
@@ -35,9 +36,9 @@ impl From<Email> for String {
 }
 
 impl Display for Email {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-      write!(f, "{}", self.0)
-  }
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 impl Deref for Email {

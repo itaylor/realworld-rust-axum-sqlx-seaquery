@@ -1,14 +1,14 @@
-use serde::{Deserialize, Serialize};
 use crate::model::values::email::Email;
 use crate::model::values::username::Username;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserResponse {
-    pub user: User,
+    pub user: UserData,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct User {
+pub struct UserData {
     pub email: Email,
     pub token: String,
     pub username: Username,
