@@ -18,24 +18,26 @@ impl HttpConfig {
 
 #[derive(Debug, Config, Clone)]
 pub struct DatabaseConfig {
-    #[env("DATABASE_USER")]
+    #[env("DATABASE_USER")] #[default("realworld")]
     pub(crate) user: String,
-    #[env("DATABASE_NAME")]
+    #[env("DATABASE_NAME")] #[default("realworld")]
     pub(crate) database: String,
-    #[env("DATABASE_PASSWORD")]
+    #[env("DATABASE_PASSWORD")] #[default(Secret("password".into()))]
     pub(crate) password: Secret<String>,
-    #[env("DATABASE_ADDRESS")]
-    pub(crate) address: String,
+    #[env("DATABASE_URL")] #[default("localhost")]
+    pub(crate) url: String,
+    #[env("DATABASE_PORT")] #[default(5432)]
+    pub(crate) port: u16,
     #[env("DATABASE_MAX_CONNECTIONS")]
-    #[default(5)]
+    #[default(50)]
     pub(crate) max_connections: u32,
 }
 
 impl DatabaseConfig {
-    pub(crate) fn connection_url(&self) -> String {
+    pub fn connection_url(&self) -> String {
         format!(
-            "postgresql://{}:{}@{}/{}",
-            self.user, *self.password, self.address, self.database
+            "postgresql://{}:{}@{}:{}/{}",
+            self.user, *self.password, self.url, self.port, self.database
         )
     }
 }
@@ -44,20 +46,20 @@ impl DatabaseConfig {
 pub struct SecretsConfig {
     #[env("PASSWORD_PEPPER")]
     #[default(Secret("default_pepper".to_string()))]
-    pub(crate) pepper: Secret<String>,
+    pub pepper: Secret<String>,
     #[env("JWT_SECRET")]
     #[default(Secret("default_jwt_secret_change_in_production".to_string()))]
-    pub(crate) jwt: Secret<String>,
+    pub jwt: Secret<String>,
 }
 
 #[derive(Debug, Config, Clone)]
 pub struct AppConfig {
     #[config]
-    pub(crate) http: HttpConfig,
+    pub http: HttpConfig,
     #[config]
-    pub(crate) database: DatabaseConfig,
+    pub database: DatabaseConfig,
     #[config]
-    pub(crate) secrets: SecretsConfig,
+    pub secrets: SecretsConfig,
 }
 
 pub fn load_config() -> AppConfig {

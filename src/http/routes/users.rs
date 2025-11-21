@@ -1,13 +1,11 @@
-use anyhow::Context;
 use crate::app_error::AppError;
 use crate::http::AppState;
 use crate::http::dto::user::{UpdateUserRequest, UserData, UserResponse};
 use axum::extract::State;
-use axum::http::StatusCode;
 use axum::routing::{get, put};
 use axum::{Json, Router};
 use tracing::info;
-use uuid::Uuid;
+use crate::domain::commands::update_user_command::UpdateUserCommand;
 use crate::http::extractors::auth_token::AuthToken;
 
 pub(crate) fn user_routes() -> Router<AppState> {
@@ -20,27 +18,18 @@ async fn get_current_user(
     State(app_state): State<AppState>,
     auth_user: AuthToken,
 ) -> Result<Json<UserResponse>, AppError> {
+  
+    info!("Get current user with id: {}", auth_user.user_id);
 
-
-    let token = auth_user.value();
-
-    let user_id = app_state
-        .jwt_generator
-        .verify_token(token)?
-        .sub
-        .parse::<Uuid>()
-        .context("Invalid user ID in token")?;
-
-    info!("Get current user: {}", user_id);
-
-    let (user, token) = app_state
+    let user= app_state
         .user_service
-        .get_user_by_id(user_id)
-        .await?;
+        .get_user_by_id(auth_user.user_id)
+        .await?
+        .ok_or(AppError::Unauthorized)?;
 
     let user = UserData {
         email: user.email,
-        token,
+        token: auth_user.raw_token,
         username: user.username,
         bio: user.bio,
         image: user.image,
@@ -50,24 +39,19 @@ async fn get_current_user(
 }
 
 async fn update_user(
+    State(app_state): State<AppState>,
+    auth_user: AuthToken,
     Json(payload): Json<UpdateUserRequest>,
-) -> Result<Json<UserResponse>, StatusCode> {
-    info!("Update user");
+) -> Result<Json<UserResponse>, AppError> {
+    info!("Update user with id: {}", auth_user.user_id);
 
-    // TODO: Extract user from JWT and update in database
-    let user = UserData {
-        email: payload
-            .user
-            .email
-            .unwrap_or("updated@user.com".try_into().unwrap()),
-        token: "mock.jwt.token".to_string(),
-        username: payload
-            .user
-            .username
-            .unwrap_or("updateduser".try_into().unwrap()),
-        bio: payload.user.bio,
-        image: payload.user.image,
-    };
+    let command = UpdateUserCommand::new(payload, auth_user.user_id);
+  
+    let user = app_state.user_service.update_user(
+        command
+     ).await?;
+  
+    let user_date = UserData::new(user, auth_user.raw_token);
 
-    Ok(Json(UserResponse { user }))
+    Ok(Json(UserResponse { user: user_date }))
 }

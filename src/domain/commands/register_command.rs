@@ -8,8 +8,8 @@ pub struct RegisterCommand {
     pub(crate) password: String,
 }
 
-impl From<RegisterRequest> for RegisterCommand {
-    fn from(req: RegisterRequest) -> Self {
+impl RegisterCommand {
+    pub(crate) fn new(req: RegisterRequest) -> Self {
         RegisterCommand {
             username: req.user.username,
             email: req.user.email,

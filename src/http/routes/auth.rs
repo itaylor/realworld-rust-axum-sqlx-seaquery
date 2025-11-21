@@ -7,6 +7,7 @@ use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
 use tracing::info;
+use crate::domain::commands::register_command::RegisterCommand;
 
 pub(crate) fn auth_routes() -> Router<AppState> {
     Router::new()
@@ -20,10 +21,12 @@ async fn login(
 ) -> Result<Json<UserResponse>, AppError> {
     info!("Login attempt for email: {}", payload.user.email);
 
-    let (user, token) = app_state
+    let user = app_state
         .user_service
         .login_user(payload.user.email, payload.user.password)
         .await?;
+
+    let token = app_state.jwt.generate_token(user.id)?;
 
     let user = UserData::new(user, token);
 
@@ -36,7 +39,11 @@ async fn register(
 ) -> Result<Json<UserResponse>, AppError> {
     info!("Registration attempt for email: {}", payload.user.email);
 
-    let (user, token) = app_state.user_service.register_user(payload.into()).await?;
+    let command = RegisterCommand::new(payload);
+
+    let user = app_state.user_service.register_user(command).await?;
+
+    let token = app_state.jwt.generate_token(user.id)?;
 
     let user = UserData {
         email: user.email,

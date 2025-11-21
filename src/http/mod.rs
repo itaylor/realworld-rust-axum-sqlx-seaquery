@@ -6,12 +6,12 @@ use routes::*;
 
 use crate::app_config::AppConfig;
 use crate::domain::user_service::UserService;
-use crate::utils::jwt::JwtGenerator;
+use crate::utils::jwt::JwtHandler;
 use axum::Router;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 
-pub(crate) fn router() -> Router<AppState> {
-    Router::new()
+pub fn router(state: AppState) -> Router {
+   let routes =  Router::new()
         .merge(auth::auth_routes())
         .merge(users::user_routes())
         .merge(profiles::profile_routes())
@@ -23,12 +23,15 @@ pub(crate) fn router() -> Router<AppState> {
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO))
                 .on_response(DefaultOnResponse::new().level(tracing::Level::INFO)),
-        )
+        );
+  
+  Router::new().nest("/api", routes).with_state(state)
+  
 }
 
 #[derive(Clone)]
 pub struct AppState {
     pub config: AppConfig,
     pub user_service: UserService,
-    pub jwt_generator: JwtGenerator,
+    pub jwt: JwtHandler,
 }

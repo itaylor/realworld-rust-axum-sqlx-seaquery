@@ -8,6 +8,12 @@ use std::ops::Deref;
 #[serde(try_from = "String", into = "String")]
 pub struct Username(String);
 
+impl Username {
+  pub fn value(&self) -> &str {
+      &self.0
+  }
+}
+
 impl TryFrom<String> for Username {
     type Error = String;
 

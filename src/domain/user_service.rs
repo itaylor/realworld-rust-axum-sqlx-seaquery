@@ -1,88 +1,103 @@
 use crate::app_error::AppError;
-use crate::domain::user_repository::{IndexedUserField, UserRepository};
+use crate::persistence::user_repository::{UserRepository};
 use crate::model::persistence::user::User;
 use crate::model::values::email::Email;
 use anyhow::Result;
+use tracing::log::info;
 use crate::domain::commands::register_command::RegisterCommand;
 use crate::utils::hasher::Hasher;
-use crate::utils::jwt::JwtGenerator;
 use uuid::Uuid;
+use crate::domain::commands::update_user_command::UpdateUserCommand;
+use crate::persistence::indexed_user_field::IndexedUserField;
+use crate::persistence::params::insert_user_params::InsertUserParams;
+use crate::persistence::params::update_user_params::UpdateUserParams;
 
 #[derive(Clone)]
 pub struct UserService {
     user_repo: UserRepository,
-    hasher: Hasher,
-    jwt: JwtGenerator,
+    hasher: Hasher
 }
 
 impl UserService {
-    pub fn new(user_repo: UserRepository, hasher: Hasher, jwt_service: JwtGenerator) -> Self {
+    pub fn new(user_repo: UserRepository, hasher: Hasher) -> Self {
         UserService {
             user_repo,
-            hasher,
-          jwt: jwt_service,
+            hasher
         }
     }
 
-    pub async fn register_user(&self, request: RegisterCommand) -> Result<(User, String), AppError> {
-        let password_hash = self.hasher.hash_password(&request.password)?;
+    pub async fn register_user(&self, command: RegisterCommand) -> Result<User, AppError> {
+        let password_hash = self.hasher.hash_password(&command.password)?;
 
-        if self.user_repo.get_user_by(IndexedUserField::Username, request.username.clone()).await?.is_some() {
-            return Err(AppError::Conflict(format!(
+        if self.user_repo.get_user_by(IndexedUserField::Username, command.username.clone()).await?.is_some() {
+            return Err(AppError::DataConflict(format!(
                 "Username '{}' is already taken",
-                request.username
+                command.username
             )));
-        } else if self.user_repo.get_user_by(IndexedUserField::Email, request.email.clone()).await?.is_some() {
-            return Err(AppError::Conflict(format!(
+        } else if self.user_repo.get_user_by(IndexedUserField::Email, command.email.clone()).await?.is_some() {
+            return Err(AppError::DataConflict(format!(
                 "Email '{}' is already registered",
-                request.email
+                command.email
             )));
         }
 
         let user = self
             .user_repo
-            .insert_user(&request.email, &request.username, &password_hash)
+            .insert_user(
+              InsertUserParams {
+                  email: &command.email.to_string(),
+                  username: &command.username.to_string(),
+                  password_hash: &password_hash,
+              }
+            )
             .await?;
 
-        let token = self
-            .jwt
-            .generate_token(user.id)?;
-
-        Ok((user, token))
+        Ok(user)
     }
 
-    pub async fn login_user(&self, email: Email, password: String) -> Result<(User, String), AppError> {
+    pub async fn login_user(&self, email: Email, password: String) -> Result<User, AppError> {
         let user = self
             .user_repo
             .get_user_by(IndexedUserField::Email, email.clone())
             .await?
             .ok_or_else(|| AppError::Unauthorized)?;
 
-        let is_valid = self
-            .hasher
-            .verify_password(&password, &user.password_hash)?;
-
-        if is_valid {
-          let token = self
-            .jwt
-            .generate_token(user.id)?;
-          Ok((user, token))
+        if self.hasher.verify_password(&password, &user.password_hash).map_err(|_| AppError::Unauthorized)? {
+         Ok(user)
         } else {
-            Err(AppError::Unauthorized)
+          Err(AppError::Unauthorized)
         }
+
+
     }
 
-    pub async fn get_user_by_id(&self, user_id: Uuid) -> Result<(User, String), AppError> {
+    pub async fn get_user_by_id(&self, user_id: Uuid) -> Result<Option<User>, AppError> {
         let user = self
             .user_repo
             .get_user_by(IndexedUserField::Id, user_id)
-            .await?
-            .ok_or(AppError::Unauthorized)?;
+            .await?;
 
-        let token = self
-            .jwt
-            .generate_token(user.id)?;
-
-        Ok((user, token))
+        Ok(user)
     }
+
+  pub(crate) async fn update_user(&self, command: UpdateUserCommand) -> Result<User, AppError> {
+
+    let user = self
+      .user_repo
+      .update_user(
+        UpdateUserParams {
+          user_id: command.user_id,
+          email: command.email,
+          username: command.username,
+          password_hash: command.password.map(|pw| self.hasher.hash_password(&pw)).transpose()?,
+          bio: command.bio,
+          image: command.image,
+        }
+      )
+      .await?;
+    
+    info!("Updated user with id: {}", user.id);
+
+    Ok(user)
+  }
 }

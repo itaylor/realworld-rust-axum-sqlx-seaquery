@@ -31,7 +31,7 @@ pub async fn connect_db(config: &DatabaseConfig) -> Result<Database, Error> {
     Ok(Database(db))
 }
 
-async fn migrate(db_pool: &Pool<Postgres>) -> Result<(), MigrateError> {
+pub async fn migrate(db_pool: &Pool<Postgres>) -> Result<(), MigrateError> {
     tracing::log::info!("Running database migrations...");
     sqlx::migrate!("./migrations").run(db_pool).await
 }

@@ -12,9 +12,9 @@ pub enum AppError {
     #[error("Unauthorized")]
     Unauthorized,
     #[error("Bad request: {0}")]
-    BadRequest(String),
+    BadData(String),
     #[error("Conflict: {0}")]
-    Conflict(String),
+    DataConflict(String),
     #[error("Database error")]
     Db(#[from] sqlx::Error),
     #[error("Internal error: {0}")]
@@ -28,14 +28,14 @@ impl IntoResponse for AppError {
 
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, Json::from(ErrorResponse::new("Unauthorized".into()))).into_response(),
 
-            AppError::BadRequest(msg) => (StatusCode::UNPROCESSABLE_ENTITY, Json::from(ErrorResponse::new(msg))).into_response(),
+            AppError::BadData(msg) => (StatusCode::UNPROCESSABLE_ENTITY, Json::from(ErrorResponse::new(msg))).into_response(),
 
             AppError::Db(err) => {
                 error!("Database error: {err:?}");
                 (StatusCode::INTERNAL_SERVER_ERROR, Json::from(ErrorResponse::new("Database error".into()))).into_response()
             }
 
-            AppError::Conflict(msg) => (StatusCode::CONFLICT, Json::from(ErrorResponse::new(msg))).into_response(),
+            AppError::DataConflict(msg) => (StatusCode::CONFLICT, Json::from(ErrorResponse::new(msg))).into_response(),
 
             AppError::Other(err) => {
                 error!("Internal: {err:?}");

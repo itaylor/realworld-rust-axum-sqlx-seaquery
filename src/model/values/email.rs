@@ -9,6 +9,12 @@ use validator::ValidateEmail;
 #[serde(try_from = "String", into = "String")]
 pub struct Email(String);
 
+impl Email {
+  pub fn value(&self) -> &str {
+    &self.0
+  }
+}
+
 impl TryFrom<String> for Email {
     type Error = String;
 

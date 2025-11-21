@@ -13,13 +13,13 @@ pub struct Claims {
 }
 
 #[derive(Clone)]
-pub struct JwtGenerator {
+pub struct JwtHandler {
     secret: String,
 }
 
-impl JwtGenerator {
+impl JwtHandler {
     pub fn new(secret: String) -> Self {
-        JwtGenerator { secret }
+        JwtHandler { secret }
     }
 
     pub fn generate_token(&self, user_id: Uuid) -> Result<String, AppError> {

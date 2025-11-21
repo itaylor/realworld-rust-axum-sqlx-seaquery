@@ -2,22 +2,22 @@ use axum::{
   extract::{FromRequestParts},
   http::{request::Parts, StatusCode},
 };
+use uuid::Uuid;
+use crate::http::AppState;
 
-pub struct AuthToken(String);
-
-impl AuthToken {
-  pub fn value(&self) -> &str {
-    &self.0
-  }
+pub struct AuthToken{
+  pub(crate) user_id: Uuid,
+  pub(crate) raw_token: String
 }
 
-impl<S> FromRequestParts<S> for AuthToken
-where
-  S: Send + Sync,
+impl FromRequestParts<AppState> for AuthToken
 {
   type Rejection = (StatusCode, &'static str);
 
-  async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+  async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+
+    let jwt = &state.jwt;
+
     let auth = parts
       .headers
       .get(axum::http::header::AUTHORIZATION)
@@ -28,7 +28,20 @@ where
       .strip_prefix("Bearer ")
       .ok_or((StatusCode::UNAUTHORIZED, "Invalid Bearer token"))?;
 
-    Ok(AuthToken(token.to_string()))
+
+    let parsed_token = jwt.verify_token(token)
+      .map_err(
+        |_| (StatusCode::UNAUTHORIZED, "Invalid or expired token")
+      )?;
+
+
+    let user_id = parsed_token.sub.parse::<Uuid>()
+      .map_err(|_| (StatusCode::UNAUTHORIZED, "Couldn't extract user id from token"))?;
+
+    Ok(AuthToken {
+      user_id,
+      raw_token: token.to_string()
+    })
   }
 
 }
