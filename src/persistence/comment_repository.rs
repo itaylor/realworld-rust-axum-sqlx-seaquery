@@ -47,7 +47,7 @@ fn comment_view_query(user_id: Option<UserId>) -> sea_query::SelectStatement {
     match user_id {
         Some(user_id) => {
             let subquery = Query::select()
-                .expr(Expr::val(1))
+                .expr(Expr::cust("1"))
                 .from(UserFollows::Table)
                 .and_where(
                     Expr::col((UserFollows::Table, UserFollows::FollowerId))

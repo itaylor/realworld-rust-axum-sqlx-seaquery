@@ -64,7 +64,7 @@ impl ProfileRepository {
         followee_id: UserId,
     ) -> Result<bool, AppError> {
         let subquery = Query::select()
-            .expr(Expr::val(1))
+            .expr(Expr::cust("1"))
             .from(UserFollows::Table)
             .and_where(Expr::col(UserFollows::FollowerId).eq(follower_id))
             .and_where(Expr::col(UserFollows::FolloweeId).eq(followee_id))

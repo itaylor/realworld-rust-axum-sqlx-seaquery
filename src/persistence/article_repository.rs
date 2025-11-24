@@ -17,6 +17,7 @@ use crate::persistence::schema::{
 use anyhow::Result;
 use sea_query::{Alias, Expr, Order, PostgresQueryBuilder, Query, SelectStatement};
 use sea_query_binder::SqlxBinder;
+use sqlx::Row;
 
 #[derive(Clone)]
 pub struct ArticleRepository {
@@ -25,7 +26,7 @@ pub struct ArticleRepository {
 
 fn following_subquery(user_id: UserId) -> SelectStatement {
     Query::select()
-        .expr(Expr::val(1))
+        .expr(Expr::cust("1"))
         .from(UserFollows::Table)
         .and_where(
             Expr::col((UserFollows::Table, UserFollows::FollowerId))
@@ -59,14 +60,14 @@ enum QueryType {
 fn build_article_view_query(
     query_type: QueryType,
     user_id: Option<UserId>,
-) -> sea_query::SelectStatement {
+) -> SelectStatement {
     let mut query = Query::select();
 
     match query_type {
         QueryType::Count => {
             query.expr_as(
-                Expr::col((Articles::Table, Articles::Id)).count(),
-                Alias::new("count"),
+              Expr::cust("COUNT(DISTINCT articles.id)"),
+              "count"
             );
         }
         QueryType::View => {
@@ -102,6 +103,34 @@ fn build_article_view_query(
             Expr::cust("COALESCE(ARRAY_AGG(tags.name ORDER BY tags.name ASC) FILTER (WHERE tags.name IS NOT NULL), ARRAY[]::text[])::text[]"),
             Alias::new("tag_list"),
           );
+
+          match user_id {
+            Some(user_id) => {
+              let following_subquery = following_subquery(user_id);
+
+              let favorited_subquery = Query::select()
+                .expr(Expr::cust("1"))
+                .from(ArticleFavorites::Table)
+                .and_where(
+                  Expr::col((ArticleFavorites::Table, ArticleFavorites::UserId))
+                    .eq(user_id)
+                    .and(
+                      Expr::col((ArticleFavorites::Table, ArticleFavorites::ArticleId))
+                        .eq(Expr::col((Articles::Table, Articles::Id))),
+                    ),
+                )
+                .to_owned();
+
+              query
+                .expr_as(Expr::exists(following_subquery), Alias::new("following"))
+                .expr_as(Expr::exists(favorited_subquery), Alias::new("favorited"));
+            }
+            None => {
+              query
+                .expr_as(Expr::cust("FALSE"), Alias::new("following"))
+                .expr_as(Expr::cust("FALSE"), Alias::new("favorited"));
+            }
+          }
         }
     }
 
@@ -126,37 +155,14 @@ fn build_article_view_query(
             ArticleFavorites::Table,
             Expr::col((ArticleFavorites::Table, ArticleFavorites::ArticleId))
                 .eq(Expr::col((Articles::Table, Articles::Id))),
-        )
-        .group_by_col((Articles::Table, Articles::Id))
-        .group_by_col((Users::Table, Users::Id));
+        );
 
-    match user_id {
-        Some(user_id) => {
-            let following_subquery = following_subquery(user_id);
+      if let QueryType::View = query_type {
+        query.group_by_col((Articles::Table, Articles::Id));
+      }
 
-            let favorited_subquery = Query::select()
-                .expr(Expr::val(1))
-                .from(ArticleFavorites::Table)
-                .and_where(
-                    Expr::col((ArticleFavorites::Table, ArticleFavorites::UserId))
-                        .eq(user_id)
-                        .and(
-                            Expr::col((ArticleFavorites::Table, ArticleFavorites::ArticleId))
-                                .eq(Expr::col((Articles::Table, Articles::Id))),
-                        ),
-                )
-                .to_owned();
+      query.group_by_col((Users::Table, Users::Id));
 
-            query
-                .expr_as(Expr::exists(following_subquery), Alias::new("following"))
-                .expr_as(Expr::exists(favorited_subquery), Alias::new("favorited"));
-        }
-        None => {
-            query
-                .expr_as(Expr::val(false), Alias::new("following"))
-                .expr_as(Expr::val(false), Alias::new("favorited"));
-        }
-    }
 
     query
 }
@@ -335,8 +341,8 @@ impl ArticleRepository {
 
         let (sql, values) = query
             .order_by((Articles::Table, Articles::CreatedAt), Order::Desc)
-            .limit(params.limit.unwrap_or_default().value() as u64)
-            .offset(params.offset.unwrap_or_default().value() as u64)
+            .limit(params.limit.unwrap_or_default().value())
+            .offset(params.offset.unwrap_or_default().value())
             .build_sqlx(PostgresQueryBuilder);
 
         let rows = sqlx::query_with(&sql, values)
@@ -370,13 +376,18 @@ impl ArticleRepository {
             );
         }
 
+
+
         let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
 
-        let rows = sqlx::query_with(&sql, values)
-            .fetch_all(self.database.pool())
-            .await?;
+        println!("SQL: {}", sql);
 
-        Ok(rows.len() as u64)
+        let count: i64 = sqlx::query_with(&sql, values)
+          .fetch_one(self.database.pool())
+            .await?
+          .get("count");
+
+        Ok(count as u64)
     }
 
     pub async fn get_feed_articles(
@@ -392,8 +403,8 @@ impl ArticleRepository {
         let (sql, values) = query
             .and_having(Expr::exists(follows_subquery))
             .order_by((Articles::Table, Articles::CreatedAt), Order::Desc)
-            .limit(limit.unwrap_or_default().value() as u64)
-            .offset(offset.unwrap_or_default().value() as u64)
+            .limit(limit.unwrap_or_default().value())
+            .offset(offset.unwrap_or_default().value())
             .build_sqlx(PostgresQueryBuilder);
 
         let rows = sqlx::query_with(&sql, values)
@@ -401,6 +412,26 @@ impl ArticleRepository {
             .await?;
 
         Ok(rows.into_iter().map(ArticleListView::from_row).collect())
+    }
+
+    pub async fn count_feed_articles(
+      &self,
+      user_id: UserId,
+    ) -> Result<u64, AppError> {
+      let mut query = build_article_view_query(QueryType::Count, Some(user_id));
+
+      let follows_subquery = following_subquery(user_id);
+
+      let (sql, values) = query
+        .and_having(Expr::exists(follows_subquery))
+        .build_sqlx(PostgresQueryBuilder);
+
+      let count: i64 = sqlx::query_with(&sql, values)
+        .fetch_one(self.database.pool())
+        .await?
+        .get("count");
+
+      Ok(count as u64)
     }
 
     //OK
