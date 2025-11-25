@@ -675,76 +675,75 @@ async fn test_get_article_feed_for_authenticated_user() {
 
 #[tokio::test]
 async fn test_get_paginated_article_feed() {
-  let app = common::create_test_app().await;
-  let author_token =
-    register_user(app.clone(), "author", "author@example.com", "password123").await;
-  let follower_token = register_user(
-    app.clone(),
-    "follower",
-    "follower@example.com",
-    "password123",
-  )
+    let app = common::create_test_app().await;
+    let author_token =
+        register_user(app.clone(), "author", "author@example.com", "password123").await;
+    let follower_token = register_user(
+        app.clone(),
+        "follower",
+        "follower@example.com",
+        "password123",
+    )
     .await;
 
-  app.clone()
-    .oneshot(
-      Request::builder()
-        .method("POST")
-        .uri("/api/profiles/author/follow")
-        .header("authorization", format!("Token {}", follower_token))
-        .body(Body::empty())
-        .unwrap(),
-    )
-    .await
-    .unwrap();
-
-  for idx in 0..100 {
-    let create_payload = json!({
-          "article": {
-              "title": format!("Feed Article {}", idx),
-              "description": "Should appear in feed",
-              "body": "Content",
-              "tagList": []
-          }
-      });
-
     app.clone()
-      .oneshot(
-        Request::builder()
-          .method("POST")
-          .uri("/api/articles")
-          .header("content-type", "application/json")
-          .header("authorization", format!("Token {}", author_token))
-          .body(Body::from(serde_json::to_string(&create_payload).unwrap()))
-          .unwrap(),
-      )
-      .await
-      .unwrap();
-  }
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/profiles/author/follow")
+                .header("authorization", format!("Token {}", follower_token))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-  let response = app
-    .oneshot(
-      Request::builder()
-        .method("GET")
-        .uri("/api/articles/feed")
-        .header("authorization", format!("Token {}", follower_token))
-        .body(Body::empty())
-        .unwrap(),
-    )
-    .await
-    .unwrap();
+    for idx in 0..100 {
+        let create_payload = json!({
+            "article": {
+                "title": format!("Feed Article {}", idx),
+                "description": "Should appear in feed",
+                "body": "Content",
+                "tagList": []
+            }
+        });
 
-  assert_eq!(response.status(), StatusCode::OK);
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/articles")
+                    .header("content-type", "application/json")
+                    .header("authorization", format!("Token {}", author_token))
+                    .body(Body::from(serde_json::to_string(&create_payload).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+    }
 
-  let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-    .await
-    .unwrap();
-  let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/articles/feed")
+                .header("authorization", format!("Token {}", follower_token))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-  assert_eq!(body["articlesCount"], 100);
-  assert_eq!(body["articles"].as_array().unwrap().len(), 50);
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(body["articlesCount"], 100);
+    assert_eq!(body["articles"].as_array().unwrap().len(), 50);
 }
-
 
 #[tokio::test]
 async fn test_get_feed_without_authentication_fails() {

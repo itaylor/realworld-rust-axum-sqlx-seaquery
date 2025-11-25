@@ -57,18 +57,12 @@ enum QueryType {
     View,
 }
 
-fn build_article_view_query(
-    query_type: QueryType,
-    user_id: Option<UserId>,
-) -> SelectStatement {
+fn build_article_view_query(query_type: QueryType, user_id: Option<UserId>) -> SelectStatement {
     let mut query = Query::select();
 
     match query_type {
         QueryType::Count => {
-            query.expr_as(
-              Expr::cust("COUNT(DISTINCT articles.id)"),
-              "count"
-            );
+            query.expr_as(Expr::cust("COUNT(DISTINCT articles.id)"), "count");
         }
         QueryType::View => {
             query
@@ -104,33 +98,36 @@ fn build_article_view_query(
             Alias::new("tag_list"),
           );
 
-          match user_id {
-            Some(user_id) => {
-              let following_subquery = following_subquery(user_id);
+            match user_id {
+                Some(user_id) => {
+                    let following_subquery = following_subquery(user_id);
 
-              let favorited_subquery = Query::select()
-                .expr(Expr::cust("1"))
-                .from(ArticleFavorites::Table)
-                .and_where(
-                  Expr::col((ArticleFavorites::Table, ArticleFavorites::UserId))
-                    .eq(user_id)
-                    .and(
-                      Expr::col((ArticleFavorites::Table, ArticleFavorites::ArticleId))
-                        .eq(Expr::col((Articles::Table, Articles::Id))),
-                    ),
-                )
-                .to_owned();
+                    let favorited_subquery = Query::select()
+                        .expr(Expr::cust("1"))
+                        .from(ArticleFavorites::Table)
+                        .and_where(
+                            Expr::col((ArticleFavorites::Table, ArticleFavorites::UserId))
+                                .eq(user_id)
+                                .and(
+                                    Expr::col((
+                                        ArticleFavorites::Table,
+                                        ArticleFavorites::ArticleId,
+                                    ))
+                                    .eq(Expr::col((Articles::Table, Articles::Id))),
+                                ),
+                        )
+                        .to_owned();
 
-              query
-                .expr_as(Expr::exists(following_subquery), Alias::new("following"))
-                .expr_as(Expr::exists(favorited_subquery), Alias::new("favorited"));
+                    query
+                        .expr_as(Expr::exists(following_subquery), Alias::new("following"))
+                        .expr_as(Expr::exists(favorited_subquery), Alias::new("favorited"));
+                }
+                None => {
+                    query
+                        .expr_as(Expr::cust("FALSE"), Alias::new("following"))
+                        .expr_as(Expr::cust("FALSE"), Alias::new("favorited"));
+                }
             }
-            None => {
-              query
-                .expr_as(Expr::cust("FALSE"), Alias::new("following"))
-                .expr_as(Expr::cust("FALSE"), Alias::new("favorited"));
-            }
-          }
         }
     }
 
@@ -157,12 +154,11 @@ fn build_article_view_query(
                 .eq(Expr::col((Articles::Table, Articles::Id))),
         );
 
-      if let QueryType::View = query_type {
+    if let QueryType::View = query_type {
         query.group_by_col((Articles::Table, Articles::Id));
-      }
+    }
 
-      query.group_by_col((Users::Table, Users::Id));
-
+    query.group_by_col((Users::Table, Users::Id));
 
     query
 }
@@ -376,16 +372,14 @@ impl ArticleRepository {
             );
         }
 
-
-
         let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
 
         println!("SQL: {}", sql);
 
         let count: i64 = sqlx::query_with(&sql, values)
-          .fetch_one(self.database.pool())
+            .fetch_one(self.database.pool())
             .await?
-          .get("count");
+            .get("count");
 
         Ok(count as u64)
     }
@@ -414,24 +408,21 @@ impl ArticleRepository {
         Ok(rows.into_iter().map(ArticleListView::from_row).collect())
     }
 
-    pub async fn count_feed_articles(
-      &self,
-      user_id: UserId,
-    ) -> Result<u64, AppError> {
-      let mut query = build_article_view_query(QueryType::Count, Some(user_id));
+    pub async fn count_feed_articles(&self, user_id: UserId) -> Result<u64, AppError> {
+        let mut query = build_article_view_query(QueryType::Count, Some(user_id));
 
-      let follows_subquery = following_subquery(user_id);
+        let follows_subquery = following_subquery(user_id);
 
-      let (sql, values) = query
-        .and_having(Expr::exists(follows_subquery))
-        .build_sqlx(PostgresQueryBuilder);
+        let (sql, values) = query
+            .and_having(Expr::exists(follows_subquery))
+            .build_sqlx(PostgresQueryBuilder);
 
-      let count: i64 = sqlx::query_with(&sql, values)
-        .fetch_one(self.database.pool())
-        .await?
-        .get("count");
+        let count: i64 = sqlx::query_with(&sql, values)
+            .fetch_one(self.database.pool())
+            .await?
+            .get("count");
 
-      Ok(count as u64)
+        Ok(count as u64)
     }
 
     //OK

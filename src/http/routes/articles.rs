@@ -71,7 +71,10 @@ async fn feed_articles(
         .map(ArticleListItem::from_article_view)
         .collect();
 
-    let articles_count = state.article_service.count_feed_articles(auth.user_id).await?;
+    let articles_count = state
+        .article_service
+        .count_feed_articles(auth.user_id)
+        .await?;
     Ok(Json(ArticlesResponse {
         articles: views,
         articles_count,

@@ -142,9 +142,7 @@ impl ArticleService {
     }
 
     pub(crate) async fn count_feed_articles(&self, user_id: UserId) -> Result<u64, AppError> {
-      self.article_repo
-        .count_feed_articles(user_id)
-        .await
+        self.article_repo.count_feed_articles(user_id).await
     }
 
     pub async fn get_feed(&self, query: GetFeedQuery) -> Result<Vec<ArticleListView>, AppError> {
