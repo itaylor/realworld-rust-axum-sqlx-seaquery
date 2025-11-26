@@ -10,20 +10,21 @@ use crate::model::values::tag_name::TagName;
 use crate::model::values::username::Username;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ArticleResponse {
     pub article: ArticleItem,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ArticlesResponse {
     pub articles: Vec<ArticleListItem>,
     #[serde(rename = "articlesCount")]
     pub articles_count: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ArticleItem {
     pub slug: Slug,
     pub title: ArticleTitle,
@@ -63,7 +64,7 @@ impl ArticleItem {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ArticleListItem {
     pub slug: Slug,
     pub title: ArticleTitle,
@@ -101,12 +102,12 @@ impl ArticleListItem {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateArticleRequest {
     pub article: CreateArticle,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateArticle {
     pub title: ArticleTitle,
     pub description: ArticleDescription,
@@ -115,12 +116,12 @@ pub struct CreateArticle {
     pub tag_list: Option<Vec<TagName>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateArticleRequest {
     pub article: UpdateArticleQuery,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateArticleQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<ArticleTitle>,
@@ -130,7 +131,7 @@ pub struct UpdateArticleQuery {
     pub body: Option<ArticleBody>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, ToSchema, utoipa::IntoParams)]
 pub struct ArticleListQuery {
     pub tag: Option<TagName>,
     pub author: Option<Username>,
@@ -139,7 +140,7 @@ pub struct ArticleListQuery {
     pub offset: Option<Offset>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, ToSchema, utoipa::IntoParams)]
 pub struct ArticleFeedListQuery {
     pub limit: Option<Limit>,
     pub offset: Option<Offset>,

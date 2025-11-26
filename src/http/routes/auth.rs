@@ -17,7 +17,18 @@ pub(crate) fn auth_routes() -> Router<AppState> {
         .route("/users", post(register))
 }
 
-async fn login(
+#[utoipa::path(
+    post,
+    path = "/api/users/login",
+    tag = "Authentication",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = UserResponse),
+        (status = 401, description = "Invalid credentials", body = crate::http::dto::error::ErrorResponse),
+        (status = 422, description = "Validation error", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn login(
     State(app_state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<UserResponse>, AppError> {
@@ -34,7 +45,17 @@ async fn login(
     Ok(Json(UserResponse { user }))
 }
 
-async fn register(
+#[utoipa::path(
+    post,
+    path = "/api/users",
+    tag = "Authentication",
+    request_body = RegisterRequest,
+    responses(
+        (status = 201, description = "User created successfully", body = UserResponse),
+        (status = 422, description = "Validation error or user already exists", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn register(
     State(app_state): State<AppState>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>), AppError> {

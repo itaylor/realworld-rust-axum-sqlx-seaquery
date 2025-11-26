@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use utoipa::ToSchema;
 
 const MIN_PASSWORD_LENGTH: usize = 8;
 const MAX_PASSWORD_LENGTH: usize = 128;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(try_from = "String", into = "String")]
+#[schema(value_type = String, example = "SecurePassword123")]
 pub struct Password(String);
 
 impl Password {

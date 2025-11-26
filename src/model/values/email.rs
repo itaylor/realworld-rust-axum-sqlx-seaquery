@@ -3,11 +3,13 @@ use serde::{Deserialize, Serialize};
 use sqlx::Type;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use utoipa::ToSchema;
 use validator::ValidateEmail;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(transparent)]
 #[serde(try_from = "String", into = "String")]
+#[schema(value_type = String, example = "user@example.com")]
 pub struct Email(String);
 
 impl Email {

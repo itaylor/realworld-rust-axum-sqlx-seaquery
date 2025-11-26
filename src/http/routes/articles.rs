@@ -28,7 +28,16 @@ pub(crate) fn article_routes() -> Router<AppState> {
         .route("/articles/{slug}/favorite", delete(unfavorite_article))
 }
 
-async fn list_articles(
+#[utoipa::path(
+    get,
+    path = "/api/articles",
+    tag = "Articles",
+    params(ArticleListQuery),
+    responses(
+        (status = 200, description = "Articles retrieved successfully", body = ArticlesResponse)
+    )
+)]
+pub(crate) async fn list_articles(
     State(state): State<AppState>,
     auth: Option<AuthToken>,
     Query(params): Query<ArticleListQuery>,
@@ -55,7 +64,17 @@ async fn list_articles(
     }))
 }
 
-async fn feed_articles(
+#[utoipa::path(
+    get,
+    path = "/api/articles/feed",
+    tag = "Articles",
+    params(ArticleFeedListQuery),
+    responses(
+        (status = 200, description = "Feed articles retrieved successfully", body = ArticlesResponse),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn feed_articles(
     State(state): State<AppState>,
     auth: AuthToken,
     Query(params): Query<ArticleFeedListQuery>,
@@ -81,7 +100,19 @@ async fn feed_articles(
     }))
 }
 
-async fn get_article(
+#[utoipa::path(
+    get,
+    path = "/api/articles/{slug}",
+    tag = "Articles",
+    params(
+        ("slug" = Slug, Path, description = "Slug of the article to retrieve")
+    ),
+    responses(
+        (status = 200, description = "Article retrieved successfully", body = ArticleResponse),
+        (status = 404, description = "Article not found", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn get_article(
     State(state): State<AppState>,
     auth: Option<AuthToken>,
     Path(slug): Path<Slug>,
@@ -99,7 +130,18 @@ async fn get_article(
     Ok(Json(ArticleResponse { article }))
 }
 
-async fn create_article(
+#[utoipa::path(
+    post,
+    path = "/api/articles",
+    tag = "Articles",
+    request_body = CreateArticleRequest,
+    responses(
+        (status = 201, description = "Article created successfully", body = ArticleResponse),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse),
+        (status = 422, description = "Validation error", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn create_article(
     State(state): State<AppState>,
     auth: AuthToken,
     Json(payload): Json<CreateArticleRequest>,
@@ -115,7 +157,23 @@ async fn create_article(
     Ok((StatusCode::CREATED, Json(ArticleResponse { article })))
 }
 
-async fn update_article(
+#[utoipa::path(
+    put,
+    path = "/api/articles/{slug}",
+    tag = "Articles",
+    params(
+        ("slug" = Slug, Path, description = "Slug of the article to update")
+    ),
+    request_body = UpdateArticleRequest,
+    responses(
+        (status = 200, description = "Article updated successfully", body = ArticleResponse),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse),
+        (status = 403, description = "Forbidden - not the article author", body = crate::http::dto::error::ErrorResponse),
+        (status = 404, description = "Article not found", body = crate::http::dto::error::ErrorResponse),
+        (status = 422, description = "Validation error", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn update_article(
     State(state): State<AppState>,
     auth: AuthToken,
     Path(slug): Path<Slug>,
@@ -135,7 +193,21 @@ async fn update_article(
     Ok(Json(ArticleResponse { article }))
 }
 
-async fn delete_article(
+#[utoipa::path(
+    delete,
+    path = "/api/articles/{slug}",
+    tag = "Articles",
+    params(
+        ("slug" = Slug, Path, description = "Slug of the article to delete")
+    ),
+    responses(
+        (status = 204, description = "Article deleted successfully"),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse),
+        (status = 403, description = "Forbidden - not the article author", body = crate::http::dto::error::ErrorResponse),
+        (status = 404, description = "Article not found", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn delete_article(
     State(state): State<AppState>,
     auth: AuthToken,
     Path(slug): Path<Slug>,
@@ -150,7 +222,20 @@ async fn delete_article(
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn favorite_article(
+#[utoipa::path(
+    post,
+    path = "/api/articles/{slug}/favorite",
+    tag = "Articles",
+    params(
+        ("slug" = Slug, Path, description = "Slug of the article to favorite")
+    ),
+    responses(
+        (status = 200, description = "Article favorited successfully", body = ArticleResponse),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse),
+        (status = 404, description = "Article not found", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn favorite_article(
     State(state): State<AppState>,
     auth: AuthToken,
     Path(slug): Path<Slug>,
@@ -173,7 +258,20 @@ async fn favorite_article(
     Ok(Json(ArticleResponse { article }))
 }
 
-async fn unfavorite_article(
+#[utoipa::path(
+    delete,
+    path = "/api/articles/{slug}/favorite",
+    tag = "Articles",
+    params(
+        ("slug" = Slug, Path, description = "Slug of the article to unfavorite")
+    ),
+    responses(
+        (status = 200, description = "Article unfavorited successfully", body = ArticleResponse),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse),
+        (status = 404, description = "Article not found", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn unfavorite_article(
     State(state): State<AppState>,
     auth: AuthToken,
     Path(slug): Path<Slug>,

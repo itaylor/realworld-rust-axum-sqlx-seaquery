@@ -14,7 +14,16 @@ pub(crate) fn user_routes() -> Router<AppState> {
         .route("/user", put(update_user))
 }
 
-async fn get_current_user(
+#[utoipa::path(
+    get,
+    path = "/api/user",
+    tag = "User",
+    responses(
+        (status = 200, description = "Current user retrieved successfully", body = UserResponse),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn get_current_user(
     State(app_state): State<AppState>,
     auth_user: AuthToken,
 ) -> Result<Json<UserResponse>, AppError> {
@@ -37,7 +46,18 @@ async fn get_current_user(
     Ok(Json(UserResponse { user }))
 }
 
-async fn update_user(
+#[utoipa::path(
+    put,
+    path = "/api/user",
+    tag = "User",
+    request_body = UpdateUserRequest,
+    responses(
+        (status = 200, description = "User updated successfully", body = UserResponse),
+        (status = 401, description = "Unauthorized - token missing or invalid", body = crate::http::dto::error::ErrorResponse),
+        (status = 422, description = "Validation error", body = crate::http::dto::error::ErrorResponse)
+    )
+)]
+pub(crate) async fn update_user(
     State(app_state): State<AppState>,
     auth_user: AuthToken,
     Json(payload): Json<UpdateUserRequest>,
