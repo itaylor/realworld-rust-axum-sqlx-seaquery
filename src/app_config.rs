@@ -28,9 +28,9 @@ pub struct DatabaseConfig {
     #[env("DATABASE_PASSWORD")]
     #[default(Secret("password".into()))]
     pub(crate) password: Secret<String>,
-    #[env("DATABASE_URL")]
+    #[env("DATABASE_HOST")]
     #[default("localhost")]
-    pub(crate) url: String,
+    pub(crate) host: String,
     #[env("DATABASE_PORT")]
     #[default(5432)]
     pub(crate) port: u16,
@@ -40,10 +40,18 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
+
     pub fn connection_url(&self) -> String {
+      format!(
+        "{}:{}/{}",
+        self.host, self.port, self.database
+      )
+    }
+
+    pub fn connection_string(&self) -> String {
         format!(
-            "postgresql://{}:{}@{}:{}/{}",
-            self.user, *self.password, self.url, self.port, self.database
+          "postgresql://{}:{}@{}",
+          self.user, *self.password, self.connection_url()
         )
     }
 }
