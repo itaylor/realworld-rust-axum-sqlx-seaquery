@@ -1,0 +1,3 @@
+module "realworld" {
+  source = "../tf"
+}

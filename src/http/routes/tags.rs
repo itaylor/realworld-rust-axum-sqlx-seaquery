@@ -18,7 +18,9 @@ pub(crate) fn tag_routes() -> Router<AppState> {
         (status = 200, description = "Tags retrieved successfully", body = TagsResponse)
     )
 )]
-pub(crate) async fn get_tags(State(state): State<AppState>) -> Result<Json<TagsResponse>, AppError> {
+pub(crate) async fn get_tags(
+    State(state): State<AppState>,
+) -> Result<Json<TagsResponse>, AppError> {
     info!("Get tags");
 
     let tags = state.tag_service.get_all_tags().await?;

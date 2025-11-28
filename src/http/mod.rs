@@ -34,10 +34,7 @@ pub fn router(state: AppState) -> Router {
 
     Router::new()
         .nest("/api", api_routes)
-        .merge(
-            SwaggerUi::new("/api/docs")
-                .url("/api/docs/openapi.json", ApiDoc::openapi())
-        )
+        .merge(SwaggerUi::new("/api/docs").url("/api/docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
 }
 

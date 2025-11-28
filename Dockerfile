@@ -18,7 +18,7 @@ RUN groupadd --system realworld
 
 RUN useradd --system --gid realworld --create-home realworld
 
-RUN apt-get update && apt-get install -y --no-install-recommends libssl3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libssl3 curl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 USER realworld
 

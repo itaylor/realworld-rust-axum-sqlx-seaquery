@@ -1,0 +1,11 @@
+target/
+.git/
+.gitignore
+*.md
+docker/
+infra/
+tests/
+.env
+.env.example
+Dockerfile
+.dockerignore

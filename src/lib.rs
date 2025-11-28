@@ -1,12 +1,12 @@
 pub mod app_config;
-pub mod openapi;
+mod app_error;
 pub mod application;
 pub mod database;
-pub mod http;
-pub mod tracing;
 mod domain;
+pub mod http;
 mod model;
-mod app_error;
+pub mod openapi;
 mod persistence;
 mod server;
+pub mod tracing;
 mod utils;
