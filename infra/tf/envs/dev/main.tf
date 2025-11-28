@@ -1,3 +1,5 @@
 module "realworld" {
-  source = "../tf"
+  source = "../.."
+
+  environment     = "dev"
 }

@@ -11,18 +11,6 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-resource "aws_ecs_cluster_capacity_providers" "main" {
-  cluster_name = aws_ecs_cluster.main.name
-
-  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
-
-  default_capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight            = 1
-    base              = 1
-  }
-}
-
 resource "aws_ecs_task_definition" "app" {
   family                   = "${var.project_name}-${var.environment}"
   network_mode             = "awsvpc"

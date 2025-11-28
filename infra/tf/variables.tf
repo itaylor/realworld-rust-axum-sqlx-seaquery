@@ -5,9 +5,8 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, prod)"
+  description = "Environment name (dev, test, prod)"
   type        = string
-  default     = "dev"
 }
 
 variable "project_name" {
@@ -79,7 +78,7 @@ variable "app_port" {
 variable "container_image" {
   description = "Docker container image (ECR URI or Docker Hub)"
   type        = string
-  default     = "ghcr.io/katlasik/realworld:latest"
+  default     = "ghcr.io/katlasik/realworld-rust-axum-sqlx:latest"
 }
 
 variable "health_check_path" {
