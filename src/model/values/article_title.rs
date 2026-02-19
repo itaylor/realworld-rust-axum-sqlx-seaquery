@@ -24,7 +24,7 @@ impl TryFrom<String> for ArticleTitle {
         let trimmed = value.trim();
 
         if trimmed.is_empty() {
-            return Err("Article title cannot be blank".to_string());
+            return Err("can't be blank".to_string());
         }
 
         if trimmed.len() > 255 {

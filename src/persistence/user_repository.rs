@@ -48,8 +48,8 @@ impl UserRepository {
         let mut query = Query::update();
         query.table(Users::Table);
 
-        for (column, value) in updates {
-            query.value(column, value);
+        for update in updates {
+            query.value(update.column, update.value);
         }
 
         let (sql, values) = query

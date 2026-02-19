@@ -20,7 +20,7 @@ pub struct CommentView {
 impl CommentView {
     pub fn from_row(row: sqlx::postgres::PgRow) -> CommentView {
         CommentView {
-            id: row.get("id"),
+            id: CommentId::from(row.get::<i64, _>("id")),
             body: row.get("body"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),

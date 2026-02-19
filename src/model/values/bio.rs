@@ -1,5 +1,5 @@
 use sea_query::Value;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use sqlx::Type;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
@@ -7,15 +7,29 @@ use utoipa::ToSchema;
 
 const MAX_BIO_LENGTH: usize = 1000;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Type, ToSchema)]
 #[sqlx(transparent)]
-#[serde(try_from = "String", into = "String")]
+#[serde(try_from = "String")]
 #[schema(value_type = String, example = "Software developer and tech enthusiast")]
 pub struct Bio(String);
+
+impl Serialize for Bio {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if self.0.is_empty() {
+            serializer.serialize_none()
+        } else {
+            serializer.serialize_str(&self.0)
+        }
+    }
+}
 
 impl Bio {
     pub fn value(&self) -> &str {
         &self.0
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -65,6 +79,10 @@ impl Deref for Bio {
 
 impl From<Bio> for Value {
     fn from(b: Bio) -> Self {
-        Value::String(Some(Box::new(b.value().to_string())))
+        if b.0.is_empty() {
+            Value::String(None)
+        } else {
+            Value::String(Some(Box::new(b.0)))
+        }
     }
 }

@@ -40,7 +40,7 @@ pub(crate) async fn get_profile(
         .user_service
         .get_user_by_username(username.clone())
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("profile"))?;
 
     let following = if let Some(user_id) = maybe_user_id {
         state.profile_service.is_following(user_id, user.id).await?
@@ -77,7 +77,7 @@ pub(crate) async fn follow_user(
         .user_service
         .get_user_by_username(username)
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("profile"))?;
 
     state
         .profile_service
@@ -113,7 +113,7 @@ pub(crate) async fn unfollow_user(
         .user_service
         .get_user_by_username(username)
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("profile"))?;
 
     state
         .profile_service

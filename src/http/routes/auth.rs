@@ -5,6 +5,7 @@ use crate::http::AppState;
 use crate::http::dto::login::LoginRequest;
 use crate::http::dto::register::RegisterRequest;
 use crate::http::dto::user::{UserData, UserResponse};
+use crate::http::extractors::validated_json::ValidatedJson;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::post;
@@ -30,7 +31,7 @@ pub(crate) fn auth_routes() -> Router<AppState> {
 )]
 pub(crate) async fn login(
     State(app_state): State<AppState>,
-    Json(payload): Json<LoginRequest>,
+    ValidatedJson(payload): ValidatedJson<LoginRequest>,
 ) -> Result<Json<UserResponse>, AppError> {
     info!("Login attempt for email: {}", payload.user.email);
 
@@ -57,7 +58,7 @@ pub(crate) async fn login(
 )]
 pub(crate) async fn register(
     State(app_state): State<AppState>,
-    Json(payload): Json<RegisterRequest>,
+    ValidatedJson(payload): ValidatedJson<RegisterRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>), AppError> {
     info!(
         "Registration attempt for email: {}, username: {}, hash of password: {}",

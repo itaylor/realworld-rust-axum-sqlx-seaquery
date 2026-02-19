@@ -1,19 +1,33 @@
 use sea_query::Value;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use sqlx::Type;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Type, ToSchema)]
 #[sqlx(transparent)]
-#[serde(try_from = "String", into = "String")]
+#[serde(try_from = "String")]
 #[schema(value_type = String, example = "https://example.com/avatar.jpg")]
 pub struct Image(String);
+
+impl Serialize for Image {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if self.0.is_empty() {
+            serializer.serialize_none()
+        } else {
+            serializer.serialize_str(&self.0)
+        }
+    }
+}
 
 impl Image {
     pub fn value(&self) -> &str {
         &self.0
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -24,7 +38,7 @@ impl TryFrom<String> for Image {
         let trimmed = value.trim();
 
         if trimmed.is_empty() {
-            return Err("Image URL cannot be empty".to_string());
+            return Ok(Image(String::new()));
         }
 
         if !trimmed.starts_with("http://") && !trimmed.starts_with("https://") {
@@ -69,6 +83,10 @@ impl Deref for Image {
 
 impl From<Image> for Value {
     fn from(i: Image) -> Self {
-        Value::String(Some(Box::new(i.value().to_string())))
+        if i.0.is_empty() {
+            Value::String(None)
+        } else {
+            Value::String(Some(Box::new(i.0)))
+        }
     }
 }

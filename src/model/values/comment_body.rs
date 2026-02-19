@@ -24,7 +24,7 @@ impl TryFrom<String> for CommentBody {
         let trimmed = value.trim();
 
         if trimmed.is_empty() {
-            return Err("Comment body cannot be blank".to_string());
+            return Err("can't be blank".to_string());
         }
 
         Ok(CommentBody(trimmed.to_string()))

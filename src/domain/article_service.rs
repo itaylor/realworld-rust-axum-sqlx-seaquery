@@ -34,10 +34,10 @@ impl ArticleService {
             .await?
             .is_some()
         {
-            Err(AppError::DataConflict(format!(
-                "Article with slug '{}' already exists",
-                slug
-            )))
+            Err(AppError::FieldConflict {
+                field: "title",
+                message: "has already been taken".to_string(),
+            })
         } else {
             Ok(())
         }
@@ -85,12 +85,12 @@ impl ArticleService {
             .article_repo
             .get_article_by(IndexedArticleField::Slug, &command.old_slug)
             .await?
-            .ok_or(AppError::NotFound)?;
+            .ok_or(AppError::ResourceNotFound("article"))?;
 
         let params = command.to_params(article.id);
 
         if article.author_id != user_id {
-            Err(AppError::Forbidden)
+            Err(AppError::ResourceForbidden("article"))
         } else {
             if let Some(ref slug) = params.slug {
                 self.verify_slug(slug).await?;
@@ -112,12 +112,12 @@ impl ArticleService {
 
         if let Some(article) = article {
             if article.author_id != user_id {
-                Err(AppError::Forbidden)
+                Err(AppError::ResourceForbidden("article"))
             } else {
                 self.article_repo.delete_article(article.id).await
             }
         } else {
-            Err(AppError::NotFound)
+            Err(AppError::ResourceNotFound("article"))
         }
     }
 
@@ -156,7 +156,7 @@ impl ArticleService {
             .article_repo
             .get_article_by(IndexedArticleField::Slug, slug)
             .await?
-            .ok_or(AppError::NotFound)?;
+            .ok_or(AppError::ResourceNotFound("article"))?;
 
         self.article_repo
             .favorite_article(user_id, article.id)
@@ -168,7 +168,7 @@ impl ArticleService {
             .article_repo
             .get_article_by(IndexedArticleField::Slug, slug)
             .await?
-            .ok_or(AppError::NotFound)?;
+            .ok_or(AppError::ResourceNotFound("article"))?;
 
         self.article_repo
             .unfavorite_article(user_id, article.id)

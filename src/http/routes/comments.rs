@@ -5,6 +5,7 @@ use crate::http::dto::comment::{
     CommentItem, CommentResponse, CommentsResponse, CreateCommentRequest,
 };
 use crate::http::extractors::auth_token::AuthToken;
+use crate::http::extractors::validated_json::ValidatedJson;
 use crate::model::values::comment_id::CommentId;
 use crate::model::values::slug::Slug;
 use axum::extract::{Path, State};
@@ -39,7 +40,7 @@ pub(crate) async fn create_comment(
     State(state): State<AppState>,
     auth: AuthToken,
     Path(slug): Path<Slug>,
-    Json(payload): Json<CreateCommentRequest>,
+    ValidatedJson(payload): ValidatedJson<CreateCommentRequest>,
 ) -> Result<(StatusCode, Json<CommentResponse>), AppError> {
     info!(user_id=%{auth.user_id}, payload=?payload, "Add comment to article: {}", slug);
 
@@ -47,7 +48,7 @@ pub(crate) async fn create_comment(
         .article_service
         .get_article(&slug, Some(auth.user_id))
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("article"))?;
 
     let command = AddCommentCommand::from_request(payload, article.id, auth.user_id);
 
@@ -85,7 +86,7 @@ pub(crate) async fn get_comments(
         .article_service
         .get_article(&slug, None)
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("article"))?;
 
     let comment_views = state
         .comment_service
@@ -121,6 +122,13 @@ pub(crate) async fn delete_comment(
     Path((slug, comment_id)): Path<(Slug, CommentId)>,
 ) -> Result<StatusCode, AppError> {
     info!(user_id=%{auth.user_id}, slug = %slug, comment_id = %comment_id, "Delete comment {} from article: {}", comment_id, slug);
+
+    // Verify the article exists first
+    state
+        .article_service
+        .get_article(&slug, None)
+        .await?
+        .ok_or(AppError::ResourceNotFound("article"))?;
 
     state
         .comment_service

@@ -31,20 +31,20 @@ impl UserService {
             .await?
             .is_some()
         {
-            return Err(AppError::DataConflict(format!(
-                "Username '{}' is already taken",
-                command.username
-            )));
+            return Err(AppError::FieldConflict {
+                field: "username",
+                message: "has already been taken".to_string(),
+            });
         } else if self
             .user_repo
             .get_user_by(IndexedUserField::Email, command.email.clone())
             .await?
             .is_some()
         {
-            return Err(AppError::DataConflict(format!(
-                "Email '{}' is already registered",
-                command.email
-            )));
+            return Err(AppError::FieldConflict {
+                field: "email",
+                message: "has already been taken".to_string(),
+            });
         }
 
         let params = command.to_params(password_hash);
@@ -58,16 +58,16 @@ impl UserService {
             .user_repo
             .get_user_by(IndexedUserField::Email, command.email.clone())
             .await?
-            .ok_or_else(|| AppError::Unauthorized)?;
+            .ok_or(AppError::InvalidCredentials)?;
 
         if self
             .hasher
             .verify_password(&command.password, &user.password_hash)
-            .map_err(|_| AppError::Unauthorized)?
+            .map_err(|_| AppError::InvalidCredentials)?
         {
             Ok(user)
         } else {
-            Err(AppError::Unauthorized)
+            Err(AppError::InvalidCredentials)
         }
     }
 

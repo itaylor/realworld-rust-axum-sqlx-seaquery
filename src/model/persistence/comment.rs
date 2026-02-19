@@ -18,7 +18,7 @@ pub struct Comment {
 impl Comment {
     pub fn from_row(row: PgRow) -> Self {
         Self {
-            id: row.get("id"),
+            id: CommentId::from(row.get::<i64, _>("id")),
             body: row.get("body"),
             article_id: row.get("article_id"),
             author_id: row.get("author_id"),

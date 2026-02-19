@@ -57,7 +57,6 @@ use utoipa::OpenApi;
         crate::http::dto::comment::CreateComment,
         crate::http::dto::tag::TagsResponse,
         crate::http::dto::error::ErrorResponse,
-        crate::http::dto::error::ErrorBody,
         crate::model::values::email::Email,
         crate::model::values::username::Username,
         crate::model::values::password::Password,

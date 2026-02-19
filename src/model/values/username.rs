@@ -24,7 +24,7 @@ impl TryFrom<String> for Username {
         let trimmed = value.trim();
 
         if trimmed.is_empty() {
-            return Err("Username cannot be blank".to_string());
+            return Err("can't be blank".to_string());
         }
 
         if trimmed.len() < 2 {

@@ -22,6 +22,9 @@ impl TryFrom<String> for Email {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.trim().is_empty() {
+            return Err("can't be blank".to_string());
+        }
         if value.validate_email() {
             Ok(Email(value))
         } else {

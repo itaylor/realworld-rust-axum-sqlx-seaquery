@@ -29,7 +29,7 @@ impl TryFrom<String> for Password {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         if value.is_empty() {
-            return Err("Password cannot be empty".to_string());
+            return Err("can't be blank".to_string());
         }
 
         if value.len() < MIN_PASSWORD_LENGTH {

@@ -11,6 +11,7 @@ use anyhow::Result;
 use sea_query::{Alias, Expr, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::Row;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct CommentRepository {
@@ -106,27 +107,25 @@ impl CommentRepository {
         Ok(())
     }
 
-    pub async fn is_comment_author(
+    /// Returns the author's UserId if the comment exists, or None if it doesn't.
+    pub async fn get_comment_author(
         &self,
         comment_id: CommentId,
-        user_id: UserId,
-    ) -> Result<bool, AppError> {
-        let subquery = Query::select()
-            .expr(Expr::value(1))
+    ) -> Result<Option<UserId>, AppError> {
+        let (sql, values) = Query::select()
+            .column(Comments::AuthorId)
             .from(Comments::Table)
             .and_where(Expr::col(Comments::Id).eq(comment_id))
-            .and_where(Expr::col(Comments::AuthorId).eq(user_id))
-            .to_owned();
-
-        let (sql, values) = Query::select()
-            .expr_as(Expr::exists(subquery), "is_author")
             .build_sqlx(PostgresQueryBuilder);
 
         let row = sqlx::query_with(&sql, values)
-            .fetch_one(self.database.pool())
+            .fetch_optional(self.database.pool())
             .await?;
 
-        Ok(row.get("is_author"))
+        Ok(row.map(|r| {
+            let uuid: Uuid = r.get("author_id");
+            UserId::from(uuid)
+        }))
     }
 
     pub async fn get_comments(

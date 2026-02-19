@@ -24,7 +24,7 @@ impl TryFrom<String> for ArticleBody {
         let trimmed = value.trim();
 
         if trimmed.is_empty() {
-            return Err("Article body cannot be blank".to_string());
+            return Err("can't be blank".to_string());
         }
 
         Ok(ArticleBody(trimmed.to_string()))

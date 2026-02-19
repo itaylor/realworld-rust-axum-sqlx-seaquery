@@ -3,27 +3,26 @@ use serde::{Deserialize, Serialize};
 use sqlx::Type;
 use std::fmt::{Display, Formatter};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(transparent)]
-#[schema(value_type = String, format = "uuid")]
-pub struct CommentId(Uuid);
+#[schema(value_type = i64)]
+pub struct CommentId(i64);
 
 impl CommentId {
-    pub fn value(&self) -> Uuid {
+    pub fn value(&self) -> i64 {
         self.0
     }
 }
 
-impl From<Uuid> for CommentId {
-    fn from(id: Uuid) -> Self {
+impl From<i64> for CommentId {
+    fn from(id: i64) -> Self {
         CommentId(id)
     }
 }
 
-impl From<CommentId> for Uuid {
-    fn from(id: CommentId) -> Uuid {
+impl From<CommentId> for i64 {
+    fn from(id: CommentId) -> i64 {
         id.0
     }
 }
@@ -36,6 +35,6 @@ impl Display for CommentId {
 
 impl From<CommentId> for Value {
     fn from(id: CommentId) -> Self {
-        Value::Uuid(Some(Box::new(id.value())))
+        Value::BigInt(Some(id.0))
     }
 }

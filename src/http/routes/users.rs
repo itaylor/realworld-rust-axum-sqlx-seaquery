@@ -3,6 +3,7 @@ use crate::domain::commands::update_user_command::UpdateUserCommand;
 use crate::http::AppState;
 use crate::http::dto::user::{UpdateUserRequest, UserData, UserResponse};
 use crate::http::extractors::auth_token::AuthToken;
+use crate::http::extractors::validated_json::ValidatedJson;
 use axum::extract::State;
 use axum::routing::{get, put};
 use axum::{Json, Router};
@@ -60,7 +61,7 @@ pub(crate) async fn get_current_user(
 pub(crate) async fn update_user(
     State(app_state): State<AppState>,
     auth_user: AuthToken,
-    Json(payload): Json<UpdateUserRequest>,
+    ValidatedJson(payload): ValidatedJson<UpdateUserRequest>,
 ) -> Result<Json<UserResponse>, AppError> {
     info!(user_id = %{auth_user.user_id}, payload = ?payload, "Update user with id: {}", auth_user.user_id);
 

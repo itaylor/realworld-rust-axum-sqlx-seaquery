@@ -6,6 +6,7 @@ use crate::model::values::comment_id::CommentId;
 use crate::model::values::user_id::UserId;
 use crate::persistence::comment_repository::CommentRepository;
 use anyhow::Result;
+use tracing::info;
 
 #[derive(Clone)]
 pub struct CommentService {
@@ -22,15 +23,14 @@ impl CommentService {
         comment_id: CommentId,
         user_id: UserId,
     ) -> Result<(), AppError> {
-        if !self
-            .comment_repo
-            .is_comment_author(comment_id, user_id)
-            .await?
-        {
-            return Err(AppError::Forbidden);
+        match self.comment_repo.get_comment_author(comment_id).await? {
+            None => {
+                info!("Comment {} not found", comment_id);
+                Err(AppError::ResourceNotFound("comment"))
+            }
+            Some(author_id) if author_id != user_id => Err(AppError::ResourceForbidden("comment")),
+            Some(_) => self.comment_repo.delete_comment(comment_id).await,
         }
-
-        self.comment_repo.delete_comment(comment_id).await
     }
 
     pub async fn add_comment(

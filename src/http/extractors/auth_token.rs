@@ -1,8 +1,10 @@
+use crate::app_error::AppError;
 use crate::http::AppState;
 use crate::model::values::user_id::UserId;
 use axum::{
     extract::FromRequestParts,
-    http::{StatusCode, request::Parts},
+    http::request::Parts,
+    response::{IntoResponse, Response},
 };
 use uuid::Uuid;
 
@@ -12,7 +14,7 @@ pub struct AuthToken {
 }
 
 impl FromRequestParts<AppState> for Option<AuthToken> {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = Response;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -28,18 +30,17 @@ impl FromRequestParts<AppState> for Option<AuthToken> {
         if let Some(raw_header) = maybe_raw_header {
             let token = raw_header
                 .strip_prefix("Token ")
-                .ok_or((StatusCode::UNAUTHORIZED, "Invalid Token format"))?;
+                .ok_or_else(|| AppError::InvalidToken.into_response())?;
 
             let parsed_token = jwt
                 .verify_token(token)
-                .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid or expired token"))?;
+                .map_err(|_| AppError::InvalidToken.into_response())?;
 
-            let uuid: Uuid = parsed_token.sub.parse().map_err(|_| {
-                (
-                    StatusCode::UNAUTHORIZED,
-                    "Couldn't extract user id from token",
-                )
-            })?;
+            let uuid: Uuid = parsed_token
+                .sub
+                .parse()
+                .map_err(|_| AppError::InvalidToken.into_response())?;
+
             let user_id = UserId::from(uuid);
 
             Ok(Some(AuthToken {
@@ -53,13 +54,13 @@ impl FromRequestParts<AppState> for Option<AuthToken> {
 }
 
 impl FromRequestParts<AppState> for AuthToken {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = Response;
 
     async fn from_request_parts(
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let maybe_token = Option::<AuthToken>::from_request_parts(parts, state).await?;
-        maybe_token.ok_or((StatusCode::UNAUTHORIZED, "Authorization token required"))
+        maybe_token.ok_or_else(|| AppError::MissingToken.into_response())
     }
 }

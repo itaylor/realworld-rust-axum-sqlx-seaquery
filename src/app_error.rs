@@ -7,6 +7,16 @@ use tracing::error;
 
 #[derive(Debug, Error)]
 pub enum AppError {
+    #[error("{0} not found")]
+    ResourceNotFound(&'static str),
+    #[error("{0} forbidden")]
+    ResourceForbidden(&'static str),
+    #[error("Token is missing")]
+    MissingToken,
+    #[error("Token is invalid")]
+    InvalidToken,
+    #[error("Invalid credentials")]
+    InvalidCredentials,
     #[error("Resource not found")]
     NotFound,
     #[error("Unauthorized")]
@@ -15,8 +25,11 @@ pub enum AppError {
     Forbidden,
     #[error("Bad request: {0}")]
     BadData(String),
-    #[error("Conflict: {0}")]
-    DataConflict(String),
+    #[error("Field conflict: {field}: {message}")]
+    FieldConflict {
+        field: &'static str,
+        message: String,
+    },
     #[error("Database error")]
     Db(#[from] sqlx::Error),
     #[error("Internal error: {0}")]
@@ -26,27 +39,63 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
+            AppError::ResourceNotFound(resource) => (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse::field(resource, "not found")),
+            )
+                .into_response(),
+
+            AppError::ResourceForbidden(resource) => (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse::field(resource, "forbidden")),
+            )
+                .into_response(),
+
+            AppError::MissingToken => (
+                StatusCode::UNAUTHORIZED,
+                Json(ErrorResponse::field("token", "is missing")),
+            )
+                .into_response(),
+
+            AppError::InvalidToken => (
+                StatusCode::UNAUTHORIZED,
+                Json(ErrorResponse::field("token", "is invalid")),
+            )
+                .into_response(),
+
+            AppError::InvalidCredentials => (
+                StatusCode::UNAUTHORIZED,
+                Json(ErrorResponse::field("credentials", "invalid")),
+            )
+                .into_response(),
+
             AppError::NotFound => (
                 StatusCode::NOT_FOUND,
-                Json::from(ErrorResponse::new("Not found".into())),
+                Json(ErrorResponse::field("body", "not found")),
             )
                 .into_response(),
 
             AppError::Unauthorized => (
                 StatusCode::UNAUTHORIZED,
-                Json::from(ErrorResponse::new("Unauthorized".into())),
+                Json(ErrorResponse::field("body", "unauthorized")),
             )
                 .into_response(),
 
             AppError::Forbidden => (
                 StatusCode::FORBIDDEN,
-                Json::from(ErrorResponse::new("Forbidden".into())),
+                Json(ErrorResponse::field("body", "forbidden")),
             )
                 .into_response(),
 
             AppError::BadData(msg) => (
                 StatusCode::UNPROCESSABLE_ENTITY,
-                Json::from(ErrorResponse::new(msg)),
+                Json(ErrorResponse::field("body", msg)),
+            )
+                .into_response(),
+
+            AppError::FieldConflict { field, message } => (
+                StatusCode::CONFLICT,
+                Json(ErrorResponse::field(field, message)),
             )
                 .into_response(),
 
@@ -54,20 +103,16 @@ impl IntoResponse for AppError {
                 error!("Database error: {err:?}");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json::from(ErrorResponse::new("Database error".into())),
+                    Json(ErrorResponse::field("body", "database error")),
                 )
                     .into_response()
-            }
-
-            AppError::DataConflict(msg) => {
-                (StatusCode::CONFLICT, Json::from(ErrorResponse::new(msg))).into_response()
             }
 
             AppError::Other(err) => {
                 error!("Internal: {err:?}");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json::from(ErrorResponse::new("Internal server error".into())),
+                    Json(ErrorResponse::field("body", "internal server error")),
                 )
                     .into_response()
             }

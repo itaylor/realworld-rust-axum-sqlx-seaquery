@@ -9,6 +9,7 @@ use crate::http::dto::article::{
     ArticlesResponse, CreateArticleRequest, UpdateArticleRequest,
 };
 use crate::http::extractors::auth_token::AuthToken;
+use crate::http::extractors::validated_json::ValidatedJson;
 use crate::model::values::slug::Slug;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -123,7 +124,7 @@ pub(crate) async fn get_article(
         .article_service
         .get_article(&slug, auth.map(|u| u.user_id))
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("article"))?;
 
     let article = ArticleItem::from_article_view(&article);
 
@@ -144,7 +145,7 @@ pub(crate) async fn get_article(
 pub(crate) async fn create_article(
     State(state): State<AppState>,
     auth: AuthToken,
-    Json(payload): Json<CreateArticleRequest>,
+    ValidatedJson(payload): ValidatedJson<CreateArticleRequest>,
 ) -> Result<(StatusCode, Json<ArticleResponse>), AppError> {
     info!(payload = ?payload, "Create article");
 
@@ -177,7 +178,7 @@ pub(crate) async fn update_article(
     State(state): State<AppState>,
     auth: AuthToken,
     Path(slug): Path<Slug>,
-    Json(payload): Json<UpdateArticleRequest>,
+    ValidatedJson(payload): ValidatedJson<UpdateArticleRequest>,
 ) -> Result<Json<ArticleResponse>, AppError> {
     info!(slug = %slug, payload = ?payload , "Update article: {}", slug);
 
@@ -251,7 +252,7 @@ pub(crate) async fn favorite_article(
         .article_service
         .get_article(&slug, Some(auth.user_id))
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("article"))?;
 
     let article = ArticleItem::from_article_view(&article);
 
@@ -287,7 +288,7 @@ pub(crate) async fn unfavorite_article(
         .article_service
         .get_article(&slug, Some(auth.user_id))
         .await?
-        .ok_or_else(|| AppError::NotFound)?;
+        .ok_or(AppError::ResourceNotFound("article"))?;
 
     let article = ArticleItem::from_article_view(&article);
 
