@@ -246,7 +246,7 @@ async fn test_delete_comment_by_author() {
         .await
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    let comment_id = body["comment"]["id"].as_str().unwrap();
+    let comment_id = body["comment"]["id"].as_number().unwrap();
 
     let response = app
         .oneshot(
@@ -295,7 +295,7 @@ async fn test_delete_comment_by_non_author_fails() {
         .await
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    let comment_id = body["comment"]["id"].as_str().unwrap();
+    let comment_id = body["comment"]["id"].as_number().unwrap();
 
     let response = app
         .oneshot(
@@ -342,7 +342,7 @@ async fn test_delete_comment_without_authentication_fails() {
         .await
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    let comment_id = body["comment"]["id"].as_str().unwrap();
+    let comment_id = body["comment"]["id"].as_number().unwrap();
 
     let response = app
         .oneshot(
