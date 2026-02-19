@@ -17,7 +17,7 @@ where
 {
     type Rejection = Response;
 
-    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, _state: &S) -> Result<Self, Self::Rejection> {
         // Verify content type
         let content_type = req
             .headers()
@@ -66,7 +66,7 @@ where
 
 /// Extract the last segment of a dotted path, e.g. "user.username" → "username".
 fn leaf_field(path: &str) -> String {
-    path.split('.').last().unwrap_or(path).to_string()
+    path.split('.').next_back().unwrap_or(path).to_string()
 }
 
 /// Map serde/validation error messages to spec-compliant strings.
